@@ -1,5 +1,7 @@
-= Automated UI Test using Selenium backed by Docker Container
+= Selenium Test in Java backed by Docker Container
 
+@author kazurayam
+@date 4 Feb, 2022
 
 == Problem to solve
 
@@ -66,24 +68,29 @@ I have developed a code in Java using JUnit 5, which does the following:
 
 The following diagram shows the sequence.
 
-image::https://docs/diagrams/out/DockerBackedWebDriverTest_sequence.png[sequence]
+image::https://kazurayam.github.io/SeleniumTestInJavaBackedByDockerContainer/diagrams/out/sequence.png[sequence]
 
 === Sample code
 
-* link:https://github.com/kazurayam/subprocessj/blob/master/src/test/java/example/DockerBackedWebDriverTest.java[example.DockerBackedWebDriverTest]
+* link:https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java[example.DockerBackedWebDriverTest]
 
 [soure,java]
 ----
-include::../src/test/java/example/DockerBackedWebDriverTest.java[DockerBackedWebDriverTest]
+include::src/test/java/example/DockerBackedWebDriverTest.java[DockerBackedWebDriverTest]
 ----
 
 == How to reuse this
 
-See https://github.com/kazurayam/subprocessj/blob/master/build.gradle[build.gradle]
+See the https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/build.gradle[build.gradle]
+
+[soure,java]
+----
+include::build.gradle[build.gradle]
+----
 
 == Conclusion
 
-I wanted to perform automated Web UI testings written in Java/Groovy against a web application written in Python. The https://mvnrepository.com/artifact/com.kazurayam/subprocessj[Subprocessj 0.3.0] library made it possible for me. I am contented with it.
+The https://mvnrepository.com/artifact/com.kazurayam/subprocessj[Subprocessj 0.3.0] library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications. I am contented with the Subprocessj.
 
 == References for Docker
 

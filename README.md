@@ -1,4 +1,10 @@
-# Automated UI Test using Selenium backed by Docker Container
+<!-- START doctoc -->
+<!-- END doctoc -->
+
+# Selenium Test in Java backed by Docker Container
+
+@author kazurayam
+@date 4 Feb, 2022
 
 ## Problem to solve
 
@@ -56,23 +62,212 @@ I have developed a code in Java using JUnit 5, which does the following:
 
 The following diagram shows the sequence.
 
-![sequence](https://docs/diagrams/out/DockerBackedWebDriverTest_sequence.png)
+![sequence](https://kazurayam.github.io/SeleniumTestInJavaBackedByDockerContainer/diagrams/out/sequence.png)
 
 ### Sample code
 
--   [example.DockerBackedWebDriverTest](https://github.com/kazurayam/subprocessj/blob/master/src/test/java/example/DockerBackedWebDriverTest.java)
+-   [example.DockerBackedWebDriverTest](https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java)
 
 <!-- -->
 
-    Unresolved directive in README_.adoc - include::../src/test/java/example/DockerBackedWebDriverTest.java[DockerBackedWebDriverTest]
+    package example;
+
+    import com.kazurayam.subprocessj.docker.ContainerFinder;
+    import com.kazurayam.subprocessj.docker.ContainerFinder.ContainerFindingResult;
+    import com.kazurayam.subprocessj.docker.ContainerRunner;
+    import com.kazurayam.subprocessj.docker.ContainerRunner.ContainerRunningResult;
+    import com.kazurayam.subprocessj.docker.ContainerStopper;
+    import com.kazurayam.subprocessj.docker.ContainerStopper.ContainerStoppingResult;
+    import com.kazurayam.subprocessj.docker.model.ContainerId;
+    import com.kazurayam.subprocessj.docker.model.DockerImage;
+    import com.kazurayam.subprocessj.docker.model.PublishedPort;
+    import io.github.bonigarcia.wdm.WebDriverManager;
+    import org.junit.jupiter.api.AfterAll;
+    import org.junit.jupiter.api.AfterEach;
+    import org.junit.jupiter.api.BeforeAll;
+    import org.junit.jupiter.api.BeforeEach;
+    import org.junit.jupiter.api.Test;
+    import org.openqa.selenium.By;
+    import org.openqa.selenium.WebDriver;
+    import org.openqa.selenium.WebElement;
+    import org.openqa.selenium.chrome.ChromeDriver;
+
+    import java.io.File;
+    import java.io.IOException;
+    import java.nio.file.Files;
+
+    import static org.junit.jupiter.api.Assertions.assertEquals;
+    import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+    /**
+     * A JUnit5 test case.
+     * This test visits and tests a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
+     * The URL is served by a process in which a Docker Container runs
+     * using a docker image which kazurayam published.
+     * The web app was originally developed in Python language by the Pallets project,
+     * is published at
+     * - https://flask.palletsprojects.com/en/2.0.x/tutorial/
+     *
+     * This test automates running and stopping a Docker Container process
+     * using commandline commands: `docker run` and `docker stop`.
+     *
+     * The `com.kazurayam.subprocessj.docker.ContainerRunner` class wraps the "docker run" command.
+     * The `com.kazurayam.subprocessj.docker.ContainerFinder` class wraps the "docker ps" command.
+     * The `com.kazurayam.subprocessj.docker.ContainerStopper` class wraps the "docker stop" command.
+     *
+     * These classes call `java.lang.ProcessBuilder` to execute the `docker` command from Java.
+     * The `com.kazurayam.subprocessj.Subprocess` class wraps the `ProcessBuilder` and provides a simpler API.
+     *
+     * @author kazurayam
+     */
+    public class DockerBackedWebDriverTest {
+
+        private static final int HOST_PORT = 3080;
+
+        private static final PublishedPort publishedPort = new PublishedPort(HOST_PORT, 8080);
+        private static final DockerImage image = new DockerImage("kazurayam/flaskr-kazurayam:1.1.0");
+
+        private WebDriver driver = null;
+
+        /**
+         * start a Docker Container by "docker run" command.
+         * In the container, a web server application runs to server a URL http://127.0.0.1:3080/
+         *
+         * It takes a bit long time; approximately 5 seconds. Just wait!
+         */
+        @BeforeAll
+        public static void beforeAll() throws IOException, InterruptedException {
+            File directory = Files.createTempDirectory("DockerBackedWebDriverTest").toFile();
+            ContainerRunningResult crr =
+                    ContainerRunner.runContainerAtHostPort(directory, publishedPort, image);
+            if (crr.returncode() != 0) {
+                throw new IllegalStateException(crr.toString());
+            }
+            // setup ChromeDriver
+            WebDriverManager.chromedriver().setup();
+        }
+
+        /**
+         * open a Chrome browser window
+         */
+        @BeforeEach
+        public void beforeEach() {
+            driver = new ChromeDriver();
+        }
+
+        /**
+         * Test an HTML page.
+         * Will verify if the site name in the page header is "Flaskr".
+         */
+        @Test
+        public void test_page_header() {
+            driver.navigate().to(String.format("http://127.0.0.1:%d/", HOST_PORT));
+            WebElement siteName = driver.findElement(By.xpath("/html/body/nav/h1"));
+            assertNotNull(siteName);
+            assertEquals("Flaskr", siteName.getText());
+            delay(2000);
+        }
+
+        /**
+         * close the Chrome browser window
+         */
+        @AfterEach
+        public void afterEach() {
+            if (driver != null) {
+                driver.quit();
+                driver = null;
+            }
+        }
+
+
+        /**
+         * Stop the Docker Container gracefully by the "docker stop" command.
+         * It will take approximately 10 seconds.
+         * Be tolerant. Just wait!
+         */
+        @AfterAll
+        public static void afterAll() throws IOException, InterruptedException {
+            ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(HOST_PORT);
+            if (cfr.returncode() == 0) {
+                ContainerId containerId = cfr.containerId();
+                ContainerStoppingResult csr = ContainerStopper.stopContainer(containerId);
+                if (csr.returncode() != 0) {
+                    throw new IllegalStateException(csr.toString());
+                }
+            } else {
+                throw new IllegalStateException(cfr.toString());
+            }
+        }
+
+        private void printResult(String label, ContainerFindingResult cfr) {
+            System.out.println("-------- " + label + " --------");
+            System.out.println(cfr.toString());
+        }
+
+        private void delay(int millis) {
+            try {
+                long l = (long)millis;
+                Thread.sleep(l);
+            } catch(InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
 
 ## How to reuse this
 
-See [build.gradle](https://github.com/kazurayam/subprocessj/blob/master/build.gradle)
+See the [build.gradle](https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/build.gradle)
+
+    /**
+     * Selenium Test in Java backed by Docker Container
+     */
+
+    plugins {
+        id 'java'
+        id 'idea'
+    }
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+
+    group = 'com.kazurayam'
+    archivesBaseName = "example"
+    version = '0.1.0'
+
+    ext.isReleaseVersion = ! version.endsWith("SNAPSHOT")
+
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+
+    def defaultEncoding = 'UTF-8'
+    tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
+
+    dependencies {
+        // https://mvnrepository.com/artifact/com.kazurayam/subprocessj
+        implementation group: 'com.kazurayam', name: 'subprocessj', version: '0.3.0'
+
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+
+        // https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java
+        testImplementation group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '4.1.2'
+
+        // https://mvnrepository.com/artifact/io.github.bonigarcia/webdrivermanager
+        testImplementation group: 'io.github.bonigarcia', name: 'webdrivermanager', version: '5.0.3'
+        testImplementation 'org.slf4j:slf4j-api:1.7.35'
+        testImplementation 'org.slf4j:slf4j-simple:1.7.35'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
 
 ## Conclusion
 
-I wanted to perform automated Web UI testings written in Java/Groovy against a web application written in Python. The [Subprocessj 0.3.0](https://mvnrepository.com/artifact/com.kazurayam/subprocessj) library made it possible for me. I am contented with it.
+The [Subprocessj 0.3.0](https://mvnrepository.com/artifact/com.kazurayam/subprocessj) library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications. I am contented with the Subprocessj.
 
 ## References for Docker
 
