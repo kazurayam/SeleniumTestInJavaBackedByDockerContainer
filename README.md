@@ -39,7 +39,7 @@ I have developed a JUnit test which does the following:
 
 -   The URL is served by a process on the localhost, in which a Docker Container runs using a docker image that I prepared.
 
--   The web app was developed in Python language by the Pallets project, is published at [flaskr tutorial](https://flask.palletsprojects.com/en/2.0.x/tutorial/)
+-   The web app was developed in Python language by the Pallets project, is published at <https://flask.palletsprojects.com/en/2.0.x/tutorial/>
 
 -   This test automates running and stopping a Docker Container using the well-known commandline commands: `docker run`, `docker ps` and `docker stop`.
 
@@ -54,6 +54,14 @@ I have developed a JUnit test which does the following:
 -   The `ProcessBuilder` is wrapped by the [`com.kazurayam.subprocessj.Subprocess`](https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/Subprocess.java) class which provides a simplified API to run arbitrary OS commands.
 
 ## Description
+
+### Environment
+
+-   I installed [Docker Desktop](https://www.docker.com/products/docker-desktop) on my Mac. Docker Descktop for Windows is also available.
+
+-   Java8+ is required. Gradle v6+ is required
+
+-   I tested this on Mac with bash. It should run on Windows as well.
 
 ### Sequence diagram
 
