@@ -5,16 +5,16 @@
 
 == Problem to solve
 
-I am interested in automating Web UI testing in Java/Groovy using Selenium WebDriver. At the same time, I am interested in developing Web Server applications in Python. So I want to execute UI tests written in Java against my Web Application written in Python. Of course, I can do it by the following manual operations.
+I am interested in automated tests for Web UI using Selenium WebDriver in Java/Groovy. Also I am interested in developing Web Server applications in Python. So I want to execute UI tests written in Java against my Web Application written in Python. I can do it by the following manual operations. 
 
-In a Terminal on Mac, I start a Docker container by
+(1) in a Terminal window on Mac, I will start a Docker container to launch a HTTP server by
 
 ----
 $ cd ~/tmp
 $ docker run -d -p 80:8080 kazurayam/flaskr-kazurayam:1.1.0
 ----
 
-I will open another Terminal, and execute UI tests by
+(2) I will open another Terminal window, and execute UI tests by:
 
 ----
 $ cd $projectDir
@@ -22,35 +22,35 @@ $ gradle test
 ....
 ----
 
-When the test has finished, I will go back to the 1st terminal window. I will identify the process id of the docker container:
+(3) when the test has finished, I will go back to the first terminal window. I will identify the id of the running docker container.
 
 ----
 $ docker ps --filter publish=80 --filter status=running -q
 fd5ad3b76b13
 ----
 
-Once I find the pid, I can stop the process gracefully by:
+(4) I will stop the container gracefully by:
 
 ----
 $ docker stop fd5ad3b76b13
 ----
 
-This procedure is not difficult. But it is cumbersome, easy to make mistakes. I often forget terminating the previous docker container, and try to start another one. Then I get an error saying "the IP port is already in use". Just frustrating.
+This procedure is not difficult. But it is cumbersome. I often forget terminating the previous docker container. When I try to start a container again, I get an error saying "the IP port is already in use", which makes me irritated.
 
-So, I want to automate starting and stopping any Docker Container on the localhost by my test code in Java.
+I want to automate starting and stopping any Docker Container on the localhost by JUnit tests.
 
 
 == Solution
 
-I have developed a code in Java using JUnit 5, which does the following:
+I have developed a JUnit test which does the following:
 
-* This test visits and tests a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
+* The test visits a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
 
-* The URL is served by a process on the localhost, in which a Docker Container runs using a docker image which kazurayam published.
+* The URL is served by a process on the localhost, in which a Docker Container runs using a docker image that I prepared.
 
-* The web app was originally developed in Python language by the Pallets project, is published at link:https://flask.palletsprojects.com/en/2.0.x/tutorial/[flaskr tutorial]
+* The web app was developed in Python language by the Pallets project, is published at link:https://flask.palletsprojects.com/en/2.0.x/tutorial/[flaskr tutorial]
 
-* This test automates running and stopping a Docker Container process using commandline commands: `docker run`, `docker ps` and `docker stop`.
+* This test automates running and stopping a Docker Container using the well-known commandline commands: `docker run`, `docker ps` and `docker stop`.
 
 * The https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/docker/ContainerRunner.java[`com.kazurayam.subprocessj.docker.ContainerRunner`] class wraps the "docker run" command.
 
@@ -58,25 +58,76 @@ I have developed a code in Java using JUnit 5, which does the following:
 
 * The https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/docker/ContainerStopper.java[`com.kazurayam.subprocessj.docker.ContainerStopper`] class wraps the "docker stop" command.
 
-* These classes call https://www.baeldung.com/java-lang-processbuilder-api[`java.lang.ProcessBuilder`] to execute the `docker` command from Java.
+* These classes internally call https://www.baeldung.com/java-lang-processbuilder-api[`java.lang.ProcessBuilder`] to execute the `docker` command from Java.
 
-* The https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/Subprocess.java[`com.kazurayam.subprocessj.Subprocess`] class wraps the `ProcessBuilder` and provides a simple API for Java application with work with OS commands.
+* The `ProcessBuilder` is wrapped by the https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/Subprocess.java[`com.kazurayam.subprocessj.Subprocess`] class which provides a simplified API to run arbitrary OS commands.
 
 == Description
 
 === Sequence diagram
 
-The following diagram shows the sequence.
+The following diagram shows how the sample code works.
 
 image::https://kazurayam.github.io/SeleniumTestInJavaBackedByDockerContainer/diagrams/out/sequence.png[sequence]
 
 === Sample code
 
-* link:https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java[example.DockerBackedWebDriverTest]
+For full code, see the follow the link.
+
+* link:https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java[example.DockerBackedSeleniumTest]
+
+I will quote from the source some fragments that would be of your interest.
+
+==== @BeforeAll
+
+starting a Docker container
 
 [soure,java]
 ----
-include::src/test/java/example/DockerBackedWebDriverTest.java[DockerBackedWebDriverTest]
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=116..128]
+----
+
+==== @BeforeEach
+
+opening a web browser
+
+[soure,java]
+----
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=81..84]
+----
+
+==== @Test
+
+navigate to a URL, verify the HTML
+
+[soure,java]
+----
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=90..97]
+----
+
+The page looks like this:
+
+image:./docs/images/Flaskr.png[]
+
+
+==== @AfterEach
+
+closing the browser
+
+[soure,java]
+----
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=102..108]
+----
+
+
+==== @AfterAll
+
+stopping the Docker container
+
+
+[soure,java]
+----
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=116..128]
 ----
 
 == How to reuse this

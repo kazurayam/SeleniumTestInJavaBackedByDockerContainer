@@ -1,6 +1,3 @@
-<!-- START doctoc -->
-<!-- END doctoc -->
-
 # Selenium Test in Java backed by Docker Container
 
 @author kazurayam
@@ -8,43 +5,43 @@
 
 ## Problem to solve
 
-I am interested in automating Web UI testing in Java/Groovy using Selenium WebDriver. At the same time, I am interested in developing Web Server applications in Python. So I want to execute UI tests written in Java against my Web Application written in Python. Of course, I can do it by the following manual operations.
+I am interested in automated tests for Web UI using Selenium WebDriver in Java/Groovy. Also I am interested in developing Web Server applications in Python. So I want to execute UI tests written in Java against my Web Application written in Python. I can do it by the following manual operations.
 
-In a Terminal on Mac, I start a Docker container by
+\(1\) in a Terminal window on Mac, I will start a Docker container to launch a HTTP server by
 
     $ cd ~/tmp
     $ docker run -d -p 80:8080 kazurayam/flaskr-kazurayam:1.1.0
 
-I will open another Terminal, and execute UI tests by
+\(2\) I will open another Terminal window, and execute UI tests by:
 
     $ cd $projectDir
     $ gradle test
     ....
 
-When the test has finished, I will go back to the 1st terminal window. I will identify the process id of the docker container:
+\(3\) when the test has finished, I will go back to the first terminal window. I will identify the id of the running docker container.
 
     $ docker ps --filter publish=80 --filter status=running -q
     fd5ad3b76b13
 
-Once I find the pid, I can stop the process gracefully by:
+\(4\) I will stop the container gracefully by:
 
     $ docker stop fd5ad3b76b13
 
-This procedure is not difficult. But it is cumbersome, easy to make mistakes. I often forget terminating the previous docker container, and try to start another one. Then I get an error saying "the IP port is already in use". Just frustrating.
+This procedure is not difficult. But it is cumbersome. I often forget terminating the previous docker container. When I try to start a container again, I get an error saying "the IP port is already in use", which makes me irritated.
 
-So, I want to automate starting and stopping any Docker Container on the localhost by my test code in Java.
+I want to automate starting and stopping any Docker Container on the localhost by JUnit tests.
 
 ## Solution
 
-I have developed a code in Java using JUnit 5, which does the following:
+I have developed a JUnit test which does the following:
 
--   This test visits and tests a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
+-   The test visits a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
 
--   The URL is served by a process on the localhost, in which a Docker Container runs using a docker image which kazurayam published.
+-   The URL is served by a process on the localhost, in which a Docker Container runs using a docker image that I prepared.
 
--   The web app was originally developed in Python language by the Pallets project, is published at [flaskr tutorial](https://flask.palletsprojects.com/en/2.0.x/tutorial/)
+-   The web app was developed in Python language by the Pallets project, is published at [flaskr tutorial](https://flask.palletsprojects.com/en/2.0.x/tutorial/)
 
--   This test automates running and stopping a Docker Container process using commandline commands: `docker run`, `docker ps` and `docker stop`.
+-   This test automates running and stopping a Docker Container using the well-known commandline commands: `docker run`, `docker ps` and `docker stop`.
 
 -   The [`com.kazurayam.subprocessj.docker.ContainerRunner`](https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/docker/ContainerRunner.java) class wraps the "docker run" command.
 
@@ -52,139 +49,30 @@ I have developed a code in Java using JUnit 5, which does the following:
 
 -   The [`com.kazurayam.subprocessj.docker.ContainerStopper`](https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/docker/ContainerStopper.java) class wraps the "docker stop" command.
 
--   These classes call [`java.lang.ProcessBuilder`](https://www.baeldung.com/java-lang-processbuilder-api) to execute the `docker` command from Java.
+-   These classes internally call [`java.lang.ProcessBuilder`](https://www.baeldung.com/java-lang-processbuilder-api) to execute the `docker` command from Java.
 
--   The [`com.kazurayam.subprocessj.Subprocess`](https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/Subprocess.java) class wraps the `ProcessBuilder` and provides a simple API for Java application with work with OS commands.
+-   The `ProcessBuilder` is wrapped by the [`com.kazurayam.subprocessj.Subprocess`](https://github.com/kazurayam/subprocessj/blob/master/src/main/java/com/kazurayam/subprocessj/Subprocess.java) class which provides a simplified API to run arbitrary OS commands.
 
 ## Description
 
 ### Sequence diagram
 
-The following diagram shows the sequence.
+The following diagram shows how the sample code works.
 
 ![sequence](https://kazurayam.github.io/SeleniumTestInJavaBackedByDockerContainer/diagrams/out/sequence.png)
 
 ### Sample code
 
--   [example.DockerBackedWebDriverTest](https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java)
+For full code, see the follow the link.
 
-<!-- -->
+-   [example.DockerBackedSeleniumTest](https://github.com/kazurayam/SeleniumTestInJavaBackedByDockerContainer/blob/master/src/test/java/example/DockerBackedWebDriverTest.java)
 
-    package example;
+I will quote from the source some fragments that would be of your interest.
 
-    import com.kazurayam.subprocessj.docker.ContainerFinder;
-    import com.kazurayam.subprocessj.docker.ContainerFinder.ContainerFindingResult;
-    import com.kazurayam.subprocessj.docker.ContainerRunner;
-    import com.kazurayam.subprocessj.docker.ContainerRunner.ContainerRunningResult;
-    import com.kazurayam.subprocessj.docker.ContainerStopper;
-    import com.kazurayam.subprocessj.docker.ContainerStopper.ContainerStoppingResult;
-    import com.kazurayam.subprocessj.docker.model.ContainerId;
-    import com.kazurayam.subprocessj.docker.model.DockerImage;
-    import com.kazurayam.subprocessj.docker.model.PublishedPort;
-    import io.github.bonigarcia.wdm.WebDriverManager;
-    import org.junit.jupiter.api.AfterAll;
-    import org.junit.jupiter.api.AfterEach;
-    import org.junit.jupiter.api.BeforeAll;
-    import org.junit.jupiter.api.BeforeEach;
-    import org.junit.jupiter.api.Test;
-    import org.openqa.selenium.By;
-    import org.openqa.selenium.WebDriver;
-    import org.openqa.selenium.WebElement;
-    import org.openqa.selenium.chrome.ChromeDriver;
+#### @BeforeAll
 
-    import java.io.File;
-    import java.io.IOException;
-    import java.nio.file.Files;
+starting a Docker container
 
-    import static org.junit.jupiter.api.Assertions.assertEquals;
-    import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-    /**
-     * A JUnit5 test case.
-     * This test visits and tests a URL "http://127.0.0.1:3080/" using Selenium WebDriver.
-     * The URL is served by a process in which a Docker Container runs
-     * using a docker image which kazurayam published.
-     * The web app was originally developed in Python language by the Pallets project,
-     * is published at
-     * - https://flask.palletsprojects.com/en/2.0.x/tutorial/
-     *
-     * This test automates running and stopping a Docker Container process
-     * using commandline commands: `docker run` and `docker stop`.
-     *
-     * The `com.kazurayam.subprocessj.docker.ContainerRunner` class wraps the "docker run" command.
-     * The `com.kazurayam.subprocessj.docker.ContainerFinder` class wraps the "docker ps" command.
-     * The `com.kazurayam.subprocessj.docker.ContainerStopper` class wraps the "docker stop" command.
-     *
-     * These classes call `java.lang.ProcessBuilder` to execute the `docker` command from Java.
-     * The `com.kazurayam.subprocessj.Subprocess` class wraps the `ProcessBuilder` and provides a simpler API.
-     *
-     * @author kazurayam
-     */
-    public class DockerBackedWebDriverTest {
-
-        private static final int HOST_PORT = 3080;
-
-        private static final PublishedPort publishedPort = new PublishedPort(HOST_PORT, 8080);
-        private static final DockerImage image = new DockerImage("kazurayam/flaskr-kazurayam:1.1.0");
-
-        private WebDriver driver = null;
-
-        /**
-         * start a Docker Container by "docker run" command.
-         * In the container, a web server application runs to server a URL http://127.0.0.1:3080/
-         *
-         * It takes a bit long time; approximately 5 seconds. Just wait!
-         */
-        @BeforeAll
-        public static void beforeAll() throws IOException, InterruptedException {
-            File directory = Files.createTempDirectory("DockerBackedWebDriverTest").toFile();
-            ContainerRunningResult crr =
-                    ContainerRunner.runContainerAtHostPort(directory, publishedPort, image);
-            if (crr.returncode() != 0) {
-                throw new IllegalStateException(crr.toString());
-            }
-            // setup ChromeDriver
-            WebDriverManager.chromedriver().setup();
-        }
-
-        /**
-         * open a Chrome browser window
-         */
-        @BeforeEach
-        public void beforeEach() {
-            driver = new ChromeDriver();
-        }
-
-        /**
-         * Test an HTML page.
-         * Will verify if the site name in the page header is "Flaskr".
-         */
-        @Test
-        public void test_page_header() {
-            driver.navigate().to(String.format("http://127.0.0.1:%d/", HOST_PORT));
-            WebElement siteName = driver.findElement(By.xpath("/html/body/nav/h1"));
-            assertNotNull(siteName);
-            assertEquals("Flaskr", siteName.getText());
-            delay(2000);
-        }
-
-        /**
-         * close the Chrome browser window
-         */
-        @AfterEach
-        public void afterEach() {
-            if (driver != null) {
-                driver.quit();
-                driver = null;
-            }
-        }
-
-
-        /**
-         * Stop the Docker Container gracefully by the "docker stop" command.
-         * It will take approximately 10 seconds.
-         * Be tolerant. Just wait!
-         */
         @AfterAll
         public static void afterAll() throws IOException, InterruptedException {
             ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(HOST_PORT);
@@ -199,21 +87,61 @@ The following diagram shows the sequence.
             }
         }
 
-        private void printResult(String label, ContainerFindingResult cfr) {
-            System.out.println("-------- " + label + " --------");
-            System.out.println(cfr.toString());
+#### @BeforeEach
+
+opening a web browser
+
+        @BeforeEach
+        public void beforeEach() {
+            driver = new ChromeDriver();
         }
 
-        private void delay(int millis) {
-            try {
-                long l = (long)millis;
-                Thread.sleep(l);
-            } catch(InterruptedException e) {
-                e.printStackTrace();
+#### @Test
+
+navigate to a URL, verify the HTML
+
+        @Test
+        public void test_page_header() {
+            driver.navigate().to(String.format("http://127.0.0.1:%d/", HOST_PORT));
+            WebElement siteName = driver.findElement(By.xpath("/html/body/nav/h1"));
+            assertNotNull(siteName);
+            assertEquals("Flaskr", siteName.getText());
+            delay(2000);
+        }
+
+The page looks like this:
+
+![Flaskr](./docs/images/Flaskr.png)
+
+#### @AfterEach
+
+closing the browser
+
+        @AfterEach
+        public void afterEach() {
+            if (driver != null) {
+                driver.quit();
+                driver = null;
             }
         }
 
-    }
+#### @AfterAll
+
+stopping the Docker container
+
+        @AfterAll
+        public static void afterAll() throws IOException, InterruptedException {
+            ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(HOST_PORT);
+            if (cfr.returncode() == 0) {
+                ContainerId containerId = cfr.containerId();
+                ContainerStoppingResult csr = ContainerStopper.stopContainer(containerId);
+                if (csr.returncode() != 0) {
+                    throw new IllegalStateException(csr.toString());
+                }
+            } else {
+                throw new IllegalStateException(cfr.toString());
+            }
+        }
 
 ## How to reuse this
 
@@ -225,7 +153,6 @@ See the [build.gradle](https://github.com/kazurayam/SeleniumTestInJavaBackedByDo
 
     plugins {
         id 'java'
-        id 'idea'
     }
 
     repositories {

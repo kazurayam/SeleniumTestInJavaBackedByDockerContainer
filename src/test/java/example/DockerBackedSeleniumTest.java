@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  *
  * @author kazurayam
  */
-public class DockerBackedWebDriverTest {
+public class DockerBackedSeleniumTest {
 
     private static final int HOST_PORT = 3080;
 
