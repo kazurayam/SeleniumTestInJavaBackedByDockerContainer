@@ -81,18 +81,16 @@ I will quote from the source some fragments that would be of your interest.
 
 starting a Docker container
 
-        @AfterAll
-        public static void afterAll() throws IOException, InterruptedException {
-            ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(HOST_PORT);
-            if (cfr.returncode() == 0) {
-                ContainerId containerId = cfr.containerId();
-                ContainerStoppingResult csr = ContainerStopper.stopContainer(containerId);
-                if (csr.returncode() != 0) {
-                    throw new IllegalStateException(csr.toString());
-                }
-            } else {
-                throw new IllegalStateException(cfr.toString());
+        @BeforeAll
+        public static void beforeAll() throws IOException, InterruptedException {
+            File directory = Files.createTempDirectory("DockerBackedWebDriverTest").toFile();
+            ContainerRunningResult crr =
+                    ContainerRunner.runContainerAtHostPort(directory, publishedPort, image);
+            if (crr.returncode() != 0) {
+                throw new IllegalStateException(crr.toString());
             }
+            // setup ChromeDriver
+            WebDriverManager.chromedriver().setup();
         }
 
 #### @BeforeEach

@@ -94,7 +94,7 @@ starting a Docker container
 
 [soure,java]
 ----
-include::src/test/java/example/DockerBackedSeleniumTest.java[lines=116..128]
+include::src/test/java/example/DockerBackedSeleniumTest.java[lines=66..76]
 ----
 
 ==== @BeforeEach
