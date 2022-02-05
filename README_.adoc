@@ -1,7 +1,7 @@
 = Selenium Test in Java backed by Docker Container
 
 @author kazurayam
-@date 4 Feb, 2022
+@date 5 Feb, 2022
 
 == Problem to solve
 
@@ -151,7 +151,7 @@ include::build.gradle[build.gradle]
 
 == Conclusion
 
-The https://mvnrepository.com/artifact/com.kazurayam/subprocessj[Subprocessj 0.3.0] library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications.
+The https://mvnrepository.com/artifact/com.kazurayam/subprocessj[Subprocessj] library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications.
 
 == References for Docker
 
@@ -159,7 +159,7 @@ The https://mvnrepository.com/artifact/com.kazurayam/subprocessj[Subprocessj 0.3
 * https://matsuand.github.io/docs.docker.jp.onthefly/engine/reference/commandline/ps/[docker ps command]
 * https://docs.docker.com/engine/reference/commandline/run/[docker run command]
 * https://matsuand.github.io/docs.docker.jp.onthefly/engine/reference/commandline/stop/[docker stop command]
-
+¡
 
 
 == links

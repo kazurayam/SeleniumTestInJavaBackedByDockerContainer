@@ -1,7 +1,7 @@
 # Selenium Test in Java backed by Docker Container
 
 @author kazurayam
-@date 4 Feb, 2022
+@date 5 Feb, 2022
 
 ## Problem to solve
 
@@ -180,7 +180,7 @@ See the [build.gradle](https://github.com/kazurayam/SeleniumTestInJavaBackedByDo
 
     dependencies {
         // https://mvnrepository.com/artifact/com.kazurayam/subprocessj
-        implementation group: 'com.kazurayam', name: 'subprocessj', version: '0.3.0'
+        implementation group: 'com.kazurayam', name: 'subprocessj', version: '0.3.1'
 
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
@@ -200,19 +200,18 @@ See the [build.gradle](https://github.com/kazurayam/SeleniumTestInJavaBackedByDo
 
 ## Conclusion
 
-The [Subprocessj 0.3.0](https://mvnrepository.com/artifact/com.kazurayam/subprocessj) library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications. I am contented with the Subprocessj.
+The [Subprocessj](https://mvnrepository.com/artifact/com.kazurayam/subprocessj) library enabled me to perform automated Web UI testings written in Java/Groovy against a web application written in Python in Docker Container. I could use Java and other programming languages mixed and integrated to build my applications.
 
 ## References for Docker
 
--   [forum.docker.com, “docker run” cannot be killed with ctrl+c](https://forums.docke.com/t/docker-run-cannot-be-killed-with-ctrl-c/13108/)
+-   [forum.docker.com, “docker run” cannot be killed with ctrl+c](https://forums.docker.com/t/docker-run-cannot-be-killed-with-ctrl-c/13108)
 
 -   [docker ps command](https://matsuand.github.io/docs.docker.jp.onthefly/engine/reference/commandline/ps/)
 
 -   [docker run command](https://docs.docker.com/engine/reference/commandline/run/)
 
 -   [docker stop command](https://matsuand.github.io/docs.docker.jp.onthefly/engine/reference/commandline/stop/)
-
--   [subprocessj project top](https://github.com/kazurayam/subprocessj)
+    ¡
 
 ## links
 
