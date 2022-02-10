@@ -3,6 +3,7 @@ package example;
 import com.kazurayam.subprocessj.docker.ContainerFinder;
 import com.kazurayam.subprocessj.docker.ContainerFinder.ContainerFindingResult;
 import com.kazurayam.subprocessj.docker.ContainerRunner;
+import com.kazurayam.subprocessj.docker.ContainerRunner.Builder;
 import com.kazurayam.subprocessj.docker.ContainerRunner.ContainerRunningResult;
 import com.kazurayam.subprocessj.docker.ContainerStopper;
 import com.kazurayam.subprocessj.docker.ContainerStopper.ContainerStoppingResult;
@@ -66,8 +67,11 @@ public class DockerBackedSeleniumTest {
     @BeforeAll
     public static void beforeAll() throws IOException, InterruptedException {
         File directory = Files.createTempDirectory("DockerBackedWebDriverTest").toFile();
-        ContainerRunningResult crr =
-                ContainerRunner.runContainerAtHostPort(directory, publishedPort, image);
+        ContainerRunner runner =
+                new ContainerRunner.Builder(image)
+                        .directory(directory)
+                        .publishedPort(publishedPort).build();
+        ContainerRunningResult crr = runner.run();
         if (crr.returncode() != 0) {
             throw new IllegalStateException(crr.toString());
         }
@@ -115,7 +119,7 @@ public class DockerBackedSeleniumTest {
      */
     @AfterAll
     public static void afterAll() throws IOException, InterruptedException {
-        ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(HOST_PORT);
+        ContainerFindingResult cfr = ContainerFinder.findContainerByHostPort(publishedPort);
         if (cfr.returncode() == 0) {
             ContainerId containerId = cfr.containerId();
             ContainerStoppingResult csr = ContainerStopper.stopContainer(containerId);
